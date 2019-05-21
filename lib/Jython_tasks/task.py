@@ -3083,7 +3083,7 @@ class Atomicity(Task):
                         commit = self.commit
                         Atomicity.update_keys =[]
                         Atomicity.delete_keys =[]
-                    exception = Transaction().RunTransaction(self.transaction, self.bucket, docs, [], [], commit, True )
+                    exception = Transaction().RunTransaction(self.transaction, self.bucket, docs, [], [], commit, True, True )
                     if not commit:
                         Atomicity.all_keys = []
 
