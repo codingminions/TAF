@@ -99,7 +99,7 @@ class basic_ops(BaseTestCase):
             self.bucket_util.create_multiple_buckets(self.cluster.master, self.num_replicas, bucket_count=self.num_buckets, bucket_type='ephemeral')
              
              
-        if self.standard_bucket:
+        if self.standard_bucket > 1:
             self.bucket_util.create_standard_buckets(self.cluster.master, self.standard_buckets, bucket_size=100)
             
         self.def_bucket= self.bucket_util.get_all_buckets()
