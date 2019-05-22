@@ -82,6 +82,7 @@ class basic_ops(BaseTestCase):
         if self.default_bucket:
             self.bucket_util.create_default_bucket(replica=self.num_replicas,
                                                compression_mode=self.compression_mode, ram_quota=100)
+        time.sleep(10)
         
         if self.drift_ahead:
             shell = RemoteMachineShellConnection(self.servers[0])
