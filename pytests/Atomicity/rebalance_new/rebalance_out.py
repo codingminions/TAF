@@ -49,7 +49,7 @@ class RebalanceOutTests(RebalanceBaseTest):
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
                         transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
-                
+        print("Reached here")
         for task in tasks:
             self.task.jython_task_manager.get_task_result(task)
         self.cluster.nodes_in_cluster = list(set(self.cluster.nodes_in_cluster) - set(servs_out))
