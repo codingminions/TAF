@@ -11,6 +11,8 @@ from remote.remote_util import RemoteMachineShellConnection
 from couchbase_helper.documentgenerator import BlobGenerator, DocumentGenerator
 import random
 from __builtin__ import True
+from java.util.concurrent import ExecutionException
+from BucketLib.bucket import Bucket
 
 
 
@@ -65,8 +67,7 @@ class basic_ops(BaseTestCase):
     def test_basic_commit(self):
         ''' Test transaction commit, rollback, time ahead, time behind scenarios with replica, persist_to and replicate_to settings '''
         # Atomicity.basic_ops.basic_ops.test_basic_commit
-        self.transaction_timeout = self.input.param("transaction_timeout", 100)
-        self.transaction_commit = self.input.param("transaction_commit", True)
+        
         self.drift_ahead = self.input.param("drift_ahead", False)
         self.drift_behind = self.input.param("drift_behind", False)
         gen_create = self.get_doc_generator(0, self.num_items)
@@ -75,6 +76,7 @@ class basic_ops(BaseTestCase):
         self.default_bucket = self.input.param("default_bucket", True)
         self.standard_bucket = self.input.param("standard_bucket", 1)
         self.exp = self.input.param("expiry", 0)
+        self.update_count = self.input.param("update_count", 1)
 #         print_ops_task = self.bucket_util.async_print_bucket_ops(def_bucket)
 
         if self.default_bucket:
@@ -96,10 +98,10 @@ class basic_ops(BaseTestCase):
             self.log.info('Date after is set behind {0}'.format( output ))
 
         if self.num_buckets:
-            self.bucket_util.create_multiple_buckets(self.cluster.master, self.num_replicas, bucket_count=self.num_buckets, bucket_type='ephemeral')
-             
-             
-        if self.standard_bucket > 1:
+            self.bucket_util.create_multiple_buckets(self.cluster.master, self.num_replicas, bucket_count=self.num_buckets, bucket_type=Bucket.bucket_type.EPHEMERAL, eviction_policy = Bucket.bucket_eviction_policy.NO_EVICTION)
+            
+        
+        if self.standard_buckets > 1:
             self.bucket_util.create_standard_buckets(self.cluster.master, self.standard_buckets, bucket_size=100)
             
         self.def_bucket= self.bucket_util.get_all_buckets()
@@ -114,9 +116,46 @@ class basic_ops(BaseTestCase):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries,update_count=self.update_count, transaction_timeout=self.transaction_timeout, 
+                                             commit=self.transaction_commit,durability=self.durability_level)
         print "going to execute the task"
         self.task.jython_task_manager.get_task_result(task)
+        
+        if self.op_type == "time_out": 
+            self.sleep(200, "sleep for 90 seconds so that the staged docs will be cleared")
+            task = self.task.async_load_gen_docs_atomicity(self.cluster, self.def_bucket,
+                                             gen_create, "create" , exp=self.exp,
+                                             batch_size=10,
+                                             process_concurrency=8,
+                                             replicate_to=self.replicate_to,
+                                             persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
+                                             retries=self.sdk_retries,update_count=self.update_count, transaction_timeout=200, 
+                                             commit=self.transaction_commit,durability=self.durability_level)
+            self.task_manager.get_task_result(task)
+#             tasks = []
+#             for bucket in self.bucket_util.buckets:
+#                 task = self.task.async_load_gen_docs(
+#                     self.cluster, bucket, gen_create, "create" , exp=self.exp,
+#                     persist_to=self.persist_to, replicate_to=self.replicate_to,
+#                     batch_size=10, timeout_secs=self.sdk_timeout,
+#                     process_concurrency=8, retries=self.sdk_retries,
+#                     durability=self.durability_level)
+#                 tasks.append(task)
+#             for task in tasks:
+#                 self.task_manager.get_task_result(task)
+            
+    #         
+#             print "going to create a task"
+#             task = self.task.async_load_gen_docs_atomicity(self.cluster, self.def_bucket,
+#                                                  gen_create, "create" , exp=self.exp,
+#                                                  batch_size=10,
+#                                                  process_concurrency=8,
+#                                                  replicate_to=self.replicate_to,
+#                                                  persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
+#                                                  retries=self.sdk_retries,update_count=self.update_count, transaction_timeout=self.transaction_timeout, 
+#                                                  commit=self.transaction_commit,durability=self.durability_level)
+#             print "going to execute the task"
+#             self.task.jython_task_manager.get_task_result(task)
 
 #         print_ops_task.end_task()
 

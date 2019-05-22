@@ -41,7 +41,7 @@ class BaseTestCase(unittest.TestCase):
                                        self.task)
         self.cleanup = False
         self.nonroot = False
-        self.test_failure = None
+        self.test_failures = list()
         shell = RemoteMachineShellConnection(self.cluster.master)
         self.os_info = shell.extract_remote_info().type.lower()
         if self.os_info != 'windows':
@@ -77,6 +77,8 @@ class BaseTestCase(unittest.TestCase):
             self.num_items = self.input.param("num_items", 100000)
             self.target_vbucket = self.input.param("target_vbucket", None)
             self.maxttl = self.input.param("maxttl", 0)
+            self.transaction_timeout = self.input.param("transaction_timeout", 100)
+            self.transaction_commit = self.input.param("transaction_commit", True)
 
             # Client specific params
             self.sdk_compression = self.input.param("sdk_compression", True)
@@ -241,8 +243,7 @@ class BaseTestCase(unittest.TestCase):
                                 output, _ = shell.execute_command("ps -aef|grep %s" %
                                                                   TestInputSingleton.input.param('get_trace', None))
                                 output = shell.execute_command("pstack %s" % output[0].split()[1].strip())
-                                print(output[0])
-                                shell.disconnect()
+                                print output[0]
                             except:
                                 pass
 
@@ -288,6 +289,28 @@ class BaseTestCase(unittest.TestCase):
               .format(status, self.case_number, self._testMethodName)
         self.log.info(msg)
 
+    def get_cbcollect_info(self, server):
+        """Collect cbcollectinfo logs for all the servers in the cluster.
+        """
+        path = TestInputSingleton.input.param("logs_folder", "/tmp")
+        print "grabbing cbcollect from {0}".format(server.ip)
+        path = path or "."
+        try:
+            cbcollectRunner(server, path).run()
+            TestInputSingleton.input.test_params[
+                "get-cbcollect-info"] = False
+        except Exception as e:
+            self.log.error("IMPOSSIBLE TO GRAB CBCOLLECT FROM {0}: {1}"
+                           .format(server.ip, e))
+
+    def sleep(self, timeout=15, message=""):
+        self.log.info("sleep for {0} secs. {1} ...".format(timeout, message))
+        time.sleep(timeout)
+
+    def set_failure(self, message):
+        self.log.error(message)
+        self.test_failures.append(message)
+
     def _initialize_nodes(self, cluster, servers, disabled_consistent_view=None, rebalanceIndexWaitingDisabled=None,
                           rebalanceIndexPausingDisabled=None, maxParallelIndexers=None, maxParallelReplicaIndexers=None,
                           port=None, quota_percent=None, services=None):
@@ -309,7 +332,7 @@ class BaseTestCase(unittest.TestCase):
             if node_quota < quota or quota == 0:
                 quota = node_quota
         if quota < 100 and len(set([server.ip for server in self.servers])) != 1:
-            self.log.warn("RAM quota was defined less than 100 MB:")
+            self.log.warn("RAM quota was defined less than 100 MB")
             for server in servers:
                 remote_client = RemoteMachineShellConnection(server)
                 ram = remote_client.extract_remote_info().ram
@@ -321,31 +344,3 @@ class BaseTestCase(unittest.TestCase):
                 rest = RestConnection(server)
                 rest.set_jre_path(self.jre_path)
         return quota
-
-    def get_cbcollect_info(self, server):
-        """
-        Collect cbcollectinfo logs for all the servers in the cluster.
-        """
-        path = TestInputSingleton.input.param("logs_folder", "/tmp")
-        print("grabbing cbcollect from {0}".format(server.ip))
-        path = path or "."
-        try:
-            cbcollectRunner(server, path).run()
-            TestInputSingleton.input.test_params[
-                "get-cbcollect-info"] = False
-        except Exception as e:
-            self.log.error("IMPOSSIBLE TO GRAB CBCOLLECT FROM {0}: {1}"
-                           .format(server.ip, e))
-
-    def sleep(self, timeout=15, message=""):
-        self.log.info("sleep for {0} secs. {1} ...".format(timeout, message))
-        time.sleep(timeout)
-
-    def log_failure(self, message):
-        self.log.error(message)
-        if self.test_failure is None:
-            self.test_failure = message
-
-    def validate_test_failure(self):
-        if self.test_failure is not None:
-            self.fail(self.test_failure)
