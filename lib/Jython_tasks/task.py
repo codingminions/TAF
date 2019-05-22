@@ -2900,7 +2900,7 @@ class Atomicity(Task):
         gen_start = int(generator.start)
         gen_end = max(int(generator.end), 1)
         if load:
-            self.process_concurrency = 10
+            self.process_concurrency = 50
         else:
             self.process_concurrency = 1
         gen_range = max(int((generator.end - generator.start)/self.process_concurrency), 1)
