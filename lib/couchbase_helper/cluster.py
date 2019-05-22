@@ -10,6 +10,7 @@ from BucketLib.BucketOperations import BucketHelper
 from Jython_tasks.task_manager import TaskManager as jython_task_manager
 
 
+
 """An API for scheduling tasks that run against Couchbase Server
 
 This module is contains the top-level API's for scheduling and executing tasks.
@@ -58,6 +59,21 @@ class ServerTasks(object):
                                       task_manager=self.jython_task_manager)
         self.jython_task_manager.schedule(_task)
         return _task.get_result()
+
+    def async_bucket_delete(self, server, bucket='default'):
+        """
+        Asynchronously deletes a bucket
+
+        Parameters:
+          server - The server to delete the bucket on. (TestInputServer)
+          bucket - The name of the bucket to be deleted. (String)
+
+        Returns:
+          BucketDeleteTask - Task future that is a handle to the scheduled task
+        """
+        _task = conc.BucketDeleteTask(server, self.jython_task_manager, bucket)
+        self.jython_task_manager.schedule(_task)
+        return _task
 
     def async_failover(self, servers=[], failover_nodes=[], graceful=False,
                        use_hostnames=False, wait_for_pending=0):
@@ -179,7 +195,7 @@ class ServerTasks(object):
                                        exp=0, flag=0, persist_to=0, replicate_to=0,
                                        only_store_hash=True, batch_size=1, pause_secs=1,
                                         timeout_secs=5, compression=True,
-                            process_concurrency=1, retries=5,
+                            process_concurrency=1, retries=5, update_count=1,
                             transaction_timeout=5, commit=True, durability=0):
 
         log.info("Loading documents ")
@@ -189,43 +205,35 @@ class ServerTasks(object):
             client = VBucketAwareMemcached(RestConnection(cluster.master), bucket)
             client_list.append(client)
             bucket_list.append(client.collection)
+        
         _task = jython_tasks.Atomicity(cluster, self.jython_task_manager, bucket_list, client, client_list, [generator],
                                                         op_type, exp, flag=flag, persist_to=persist_to,
                                                         replicate_to=replicate_to, only_store_hash=only_store_hash,
                                                         batch_size=batch_size,
                                                         pause_secs=pause_secs, timeout_secs=timeout_secs,
                                                         compression=compression,
-                                                        process_concurrency=process_concurrency, retries=retries,transaction_timeout=transaction_timeout, commit=commit, durability=durability)
+                                                        process_concurrency=process_concurrency, retries=retries, update_count=update_count, 
+                                                        transaction_timeout=transaction_timeout, commit=commit, durability=durability)
         self.jython_task_manager.add_new_task(_task)
         return _task
+    
 
     def async_load_gen_docs_durable(self, cluster, bucket, generator, op_type,
                                     exp=0, flag=0, persist_to=0,
                                     replicate_to=0, only_store_hash=True,
                                     batch_size=1, pause_secs=1,
                                     timeout_secs=5, compression=True,
-                                    process_concurrency=1, retries=5,
-                                    durability=""):
+                                    process_concurrency=1, retries=5):
 
         log.info("Loading documents to {}".format(bucket.name))
-        clients = []
-        gen_start = int(generator.start)
-        gen_end = max(int(generator.end), 1)
-        gen_range = max(int((generator.end-generator.start) / process_concurrency), 1)
-        for _ in range(gen_start, gen_end, gen_range):
-            client = VBucketAwareMemcached(RestConnection(cluster.master),
-                                           bucket)
-            clients.append(client)
-
-        majority_value = (bucket.replicaNumber + 1)/2 + 1
+        client = VBucketAwareMemcached(RestConnection(cluster.master), bucket)
         _task = jython_tasks.Durability(
-            cluster, self.jython_task_manager, bucket, clients, generator,
+            cluster, self.jython_task_manager, bucket, client, generator,
             op_type, exp, flag=flag, persist_to=persist_to,
             replicate_to=replicate_to, only_store_hash=only_store_hash,
             batch_size=batch_size, pause_secs=pause_secs,
             timeout_secs=timeout_secs, compression=compression,
-            process_concurrency=process_concurrency, retries=retries,
-            durability=durability, majority_value=majority_value)
+            process_concurrency=process_concurrency, retries=retries)
         self.jython_task_manager.add_new_task(_task)
         return _task
 
@@ -399,6 +407,18 @@ class ServerTasks(object):
         Returns:
             boolean - Whether or not the bucket was created."""
         _task = self.async_create_standard_bucket(name, port, bucket_params)
+        return _task.get_result(timeout)
+
+    def bucket_delete(self, server, bucket='default', timeout=None):
+        """Synchronously deletes a bucket
+
+        Parameters:
+            server - The server to delete the bucket on. (TestInputServer)
+            bucket - The name of the bucket to be deleted. (String)
+
+        Returns:
+            boolean - Whether or not the bucket was deleted."""
+        _task = self.async_bucket_delete(server, bucket)
         return _task.get_result(timeout)
 
     def init_node(self, server, async_init_node=True,
