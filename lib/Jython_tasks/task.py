@@ -2880,18 +2880,20 @@ class Atomicity(Task):
             except Exception as e:
                 self.set_exception(e)
 
-        tasks = []
-        for generator in self.generators:
-            tasks.extend(self.get_tasks(generator, 0))
-            iterator += 1
- 
-        log.info("going to add verification task")
-        for task in tasks:
-            try:
-                Atomicity.task_manager.add_new_task(task)
-                Atomicity.task_manager.get_task_result(task)
-            except Exception as e:
-                self.set_exception(e)
+ #==============================================================================
+ #        tasks = []
+ #        for generator in self.generators:
+ #            tasks.extend(self.get_tasks(generator, 0))
+ #            iterator += 1
+ # 
+ #        log.info("going to add verification task")
+ #        for task in tasks:
+ #            try:
+ #                Atomicity.task_manager.add_new_task(task)
+ #                Atomicity.task_manager.get_task_result(task)
+ #            except Exception as e:
+ #                self.set_exception(e)
+ #==============================================================================
         self.client.close()
 
     def get_tasks(self, generator, load):
@@ -2899,10 +2901,12 @@ class Atomicity(Task):
         tasks = []
         gen_start = int(generator.start)
         gen_end = max(int(generator.end), 1)
-        if load:
-            self.process_concurrency = 50
-        else:
-            self.process_concurrency = 1
+        #=======================================================================
+        # if load:
+        #     self.process_concurrency = 10
+        # else:
+        #=======================================================================
+        self.process_concurrency = 1
         gen_range = max(int((generator.end - generator.start)/self.process_concurrency), 1)
         for pos in range(gen_start, gen_end, gen_range):
             partition_gen = copy.deepcopy(generator)
@@ -3012,14 +3016,15 @@ class Atomicity(Task):
             
             for op_type in self.op_type:
                 if op_type == "create":
+                    print(len(self.op_type))
                     if len(self.op_type) != 1:
                         commit = True
                     else:
                         commit = self.commit
                         Atomicity.update_keys =[]
                         Atomicity.delete_keys =[]
-#                     for doc in docs:
-#                         exception = Transaction().RunTransaction(self.transaction, self.bucket, [doc], [], [], commit, True, Atomicity.updatecount )
+                    for doc in docs:
+                        exception = Transaction().RunTransaction(self.transaction, self.bucket, [doc], [], [], commit, True, Atomicity.updatecount )
 #                     threads = []
 #                     for doc in docs:
 #                         name = threading.Thread(target=self.__thread_to_transaction, args=(doc,))
@@ -3030,7 +3035,7 @@ class Atomicity(Task):
 #                     # wait till it completes
 #                     for thread in threads:
 #                         thread.join()
-                    exception = Transaction().RunTransaction(self.transaction, self.bucket, docs, [], [], commit, True, Atomicity.updatecount )
+#                     exception = Transaction().RunTransaction(self.transaction, self.bucket, docs, [], [], commit, True, Atomicity.updatecount)
                     if not commit:
                         Atomicity.all_keys = []
 
