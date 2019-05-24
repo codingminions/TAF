@@ -119,9 +119,13 @@ class RebalanceOutTests(RebalanceBaseTest):
         #=======================================================================
         self.sleep(60, "Starting prev_failover_stats")
         prev_failover_stats = self.bucket_util.get_failovers_logs(self.cluster.servers[:self.nodes_init], self.bucket_util.buckets)
+        print("Prev failover stats achieved")
         prev_vbucket_stats = self.bucket_util.get_vbucket_seqnos(self.cluster.servers[:self.nodes_init], self.bucket_util.buckets)
+        print("Prev vbuckets stats achieved")
         record_data_set = self.bucket_util.get_data_set_all(self.cluster.servers[:self.nodes_init], self.bucket_util.buckets)
+        print("record dataset stats achieved")
         self.bucket_util.compare_vbucketseq_failoverlogs(prev_vbucket_stats, prev_failover_stats)
+        print("add remove achieved")
         self.add_remove_servers_and_rebalance([], servs_out)
         
         #=======================================================================
