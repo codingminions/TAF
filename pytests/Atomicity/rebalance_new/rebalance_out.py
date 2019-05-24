@@ -95,7 +95,7 @@ class RebalanceOutTests(RebalanceBaseTest):
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
                         transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
         self.task.jython_task_manager.get_task_result(task)
-        self.sleep(100, "When the doc_ops is not specified in the parameters")
+        # self.sleep(100, "When the doc_ops is not specified in the parameters")
         
         gen_delete = self.get_doc_generator(self.num_items / 2, self.num_items)
         gen_create = self.get_doc_generator(self.num_items + 1, self.num_items * 3 / 2)
