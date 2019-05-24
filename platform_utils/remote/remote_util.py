@@ -4065,6 +4065,7 @@ class RemoteMachineShellConnection:
 
         command = "%s %s %s %s" % (transfer_command, source, destination,
                                    command_options)
+        print(command)
         if self.info.type.lower() == 'windows':
             command = "cmd /c \"%s\" \"%s\" \"%s\" %s" \
                       % (transfer_command, source, destination,
