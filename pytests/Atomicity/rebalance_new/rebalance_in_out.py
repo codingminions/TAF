@@ -42,7 +42,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         servs_in = self.cluster.servers[self.nodes_init:self.nodes_init + self.nodes_in]
         servs_out = self.cluster.servers[self.nodes_init - self.nodes_out:self.nodes_init]
         result_nodes = list(set(self.cluster.servers[:self.nodes_init] + servs_in) - set(servs_out)) 
@@ -94,7 +94,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         servs_in = self.cluster.servers[self.nodes_init:self.nodes_init + self.nodes_in]
         servs_out = self.cluster.servers[self.nodes_init - self.nodes_out:self.nodes_init]
         try:
@@ -151,7 +151,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         servs_in = self.cluster.servers[self.nodes_init:self.nodes_init + self.nodes_in]
         servs_out = self.cluster.servers[self.nodes_init - self.nodes_out:self.nodes_init]
         try:
@@ -209,7 +209,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
             self.add_remove_servers_and_rebalance([], self.cluster.servers[i:self.num_servers])
             self.sleep(10)
             try:
@@ -222,7 +222,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
             self.add_remove_servers_and_rebalance(self.cluster.servers[i:self.num_servers], [])
             try:
                 self.task_manager.get_task_result(task)
@@ -252,7 +252,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         for i in reversed(range(self.num_servers)[self.num_servers / 2:]):
             task = self.task.async_load_gen_docs_atomicity(self.cluster, self.def_bucket,
                                              gen, "rebalance_only_update" , exp=0,
@@ -260,7 +260,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
             compact_tasks = []
             for bucket in self.bucket_util.buckets:
                 compact_tasks.append(self.task.async_compact_bucket(self.cluster.master, bucket))
@@ -278,7 +278,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
             self.add_remove_servers_and_rebalance(self.cluster.servers[i:self.num_servers], [])
             try:
                 self.task_manager.get_task_result(task)
@@ -313,7 +313,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
             self.add_remove_servers_and_rebalance(self.cluster.servers[init_num_nodes:init_num_nodes + i + 1], [])
             self.sleep(10)
             self.add_remove_servers_and_rebalance([], self.cluster.servers[init_num_nodes:init_num_nodes + i + 1])
@@ -350,7 +350,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
             
             tasks.append(task = self.task.async_load_gen_docs_atomicity(self.cluster, self.def_bucket,
                                              gen_delete, "rebalance_delete" , exp=0,
@@ -358,7 +358,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
             )
 
             self.add_remove_servers_and_rebalance([], self.cluster.servers[i:self.num_servers])
@@ -372,7 +372,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
             self.task_manager.get_task_result(task)
             self.sleep(20)
 #             self.bucket_util.verify_cluster_stats(self.num_items)
@@ -399,7 +399,7 @@ class RebalanceInOutTests(RebalanceBaseTest):
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
                                              persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         try:
             self.task_manager.get_task_result(task)
         except ExecutionException:
