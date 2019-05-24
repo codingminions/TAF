@@ -34,45 +34,27 @@ class RebalanceOutTests(RebalanceBaseTest):
                 tasks.append(self.task.async_load_gen_docs_atomicity(
                         self.cluster,self.bucket_util.buckets, self.gen_update, "rebalance_update",0,
                         batch_size=20,process_concurrency=8,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                         
             if ("create" in self.doc_ops):
                 tasks.append(self.task.async_load_gen_docs_atomicity(
                         self.cluster,self.bucket_util.buckets, gen_create, "create",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                 
             if ("delete" in self.doc_ops):
                 tasks.append(self.task.async_load_gen_docs_atomicity(
                         self.cluster,self.bucket_util.buckets, gen_delete, "rebalance_delete",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
-        print("Reached here")
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
+        print("Reached here")        
         for task in tasks:
-            self.task.jython_task_manager.get_task_result(task)
+            self.task_manager.get_task_result(task)
         self.cluster.nodes_in_cluster = list(set(self.cluster.nodes_in_cluster) - set(servs_out))
         self.sleep(120, "Wait for cluster to settle")
-        #=======================================================================
-        # tasks = []
-        # for bucket in self.bucket_util.buckets:
-        #     if (self.doc_ops is not None):
-        #         if ("update" in self.doc_ops):
-        #             tasks.append(self.task.async_validate_docs(self.cluster, bucket, gen_create, "update", 0,
-        #                                                        batch_size=10))
-        #         if ("create" in self.doc_ops):
-        #             tasks.append(
-        #                 self.task.async_validate_docs(self.cluster, bucket, gen_create, "create", 0, batch_size=10,
-        #                                               process_concurrency=8))
-        #         if ("delete" in self.doc_ops):
-        #             tasks.append(
-        #                 self.task.async_validate_docs(self.cluster, bucket, gen_delete, "delete", 0, batch_size=10))
-        # for task in tasks:
-        #     self.task.jython_task_manager.get_task_result(task)
-        # self.bucket_util.verify_stats_all_buckets(self.num_items * 2)
-        #=======================================================================
-
+        
     """Rebalances nodes out of a cluster while doing docs ops:create, delete, update.
 
         This test begins with all servers clustered together and  loads a user defined
@@ -83,8 +65,7 @@ class RebalanceOutTests(RebalanceBaseTest):
         curr_items_total. We also check for data and its meta-data, vbucket sequene numbers"""
 
     def rebalance_out_after_ops(self):
-        # define which doc's ops will be performed during rebalancing
-        # allows multiple of them but one by one
+        
         self.transaction_timeout = self.input.param("transaction_timeout", 100)
         self.transaction_commit = self.input.param("transaction_commit", True)
         
@@ -93,9 +74,9 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, self.gen_load, "create",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         self.task.jython_task_manager.get_task_result(task)
-        # self.sleep(100, "When the doc_ops is not specified in the parameters")
+        
         
         gen_delete = self.get_doc_generator(self.num_items / 2, self.num_items)
         gen_create = self.get_doc_generator(self.num_items + 1, self.num_items * 3 / 2)
@@ -107,14 +88,14 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, self.gen_update, "rebalance_update",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                 
             if ("create" in self.doc_ops):
                 tasks.append(self.task.async_load_gen_docs_atomicity(
                         self.cluster,self.bucket_util.buckets, gen_create, "create",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                 self.num_items = self.num_items + 1 + (self.num_items * 3 / 2)
                 
             if ("delete" in self.doc_ops):
@@ -122,7 +103,7 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, gen_delete, "rebalance_delete",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                 
                 self.num_items = self.num_items - (self.num_items / 2)
                 
@@ -232,7 +213,7 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, self.gen_load, "create",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         self.task.jython_task_manager.get_task_result(task)
         self.sleep(60,"Task completed")
         fail_over = self.input.param("fail_over", False)
@@ -250,14 +231,14 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, self.gen_update, "rebalance_update",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                 
             if ("create" in self.doc_ops):
                 tasks.append(self.task.async_load_gen_docs_atomicity(
                         self.cluster,self.bucket_util.buckets, gen_create, "create",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                 self.num_items = self.num_items + 1 + (self.num_items * 3 / 2)
                 
             if ("delete" in self.doc_ops):
@@ -265,7 +246,7 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, gen_delete, "rebalance_delete",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                 
                 self.num_items = self.num_items - (self.num_items / 2)
             for task in tasks:
@@ -364,7 +345,7 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, self.gen_load, "create",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
                 
         self.task.jython_task_manager.get_task_result(task)
         self.sleep(60,"The loading of docs is complete")
@@ -429,14 +410,14 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, self.gen_update, "rebalance_update",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                 if ("create" in self.doc_ops):
                     gen_create = self.get_doc_generator(self.num_items * (self.num_servers - i)/2.0, self.num_items * (self.num_servers - i + 1) / 2.0)
                     tasks.append(self.task.async_load_gen_docs_atomicity(
                         self.cluster,self.bucket_util.buckets, gen_create, "create",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                     # self.num_items = self.num_items + 1 + (self.num_items * 3 / 2)
                     
                 if ("delete" in self.doc_ops):
@@ -444,7 +425,7 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, gen_delete, "rebalance_delete",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit))
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                     self.num_items = self.num_items - (self.num_items / 2)
                 
             #===================================================================
@@ -491,7 +472,7 @@ class RebalanceOutTests(RebalanceBaseTest):
         task = self.task.async_load_gen_docs_atomicity(self.cluster, self.bucket_util.buckets,
                                              self.gen_load,"create",0,
                                              batch_size=10,timeout_secs=self.sdk_timeout,process_concurrency=8,
-                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                                             retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         self.task.jython_task_manager.get_task_result(task)
         self.sleep(60, "This task is completed")
         
@@ -630,7 +611,7 @@ class RebalanceOutTests(RebalanceBaseTest):
                         self.cluster,self.bucket_util.buckets, self.gen_load, "create",0,
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
                 
         self.task.jython_task_manager.get_task_result(task)
         self.sleep(20,"Task completed")

@@ -92,26 +92,7 @@ class RebalanceInTests(RebalanceBaseTest):
             #self.num_items += self.num_items - fail.__len__()
         self.cluster.nodes_in_cluster.extend(servs_in)
         self.sleep(60, "Wait for cluster to be ready after rebalance")
-        #=======================================================================
-        # tasks = []
-        #=======================================================================
-        #=======================================================================
-        # for bucket in self.bucket_util.buckets:
-        #     if (self.doc_ops is not None):
-        #         if ("update" in self.doc_ops):
-        #             tasks.append(self.task.async_validate_docs(self.cluster, bucket, self.gen_update, "update", 0,
-        #                                                        batch_size=10))
-        #         if ("create" in self.doc_ops):
-        #             tasks.append(self.task.async_validate_docs(self.cluster, bucket, gen_create, "create", 0, batch_size=10,
-        #                                                        process_concurrency=8))
-        #         if ("delete" in self.doc_ops):
-        #             tasks.append(self.task.async_validate_docs(self.cluster, bucket, gen_delete, "delete", 0, batch_size=10))
-        #=======================================================================
-        #=======================================================================
-        # for task in tasks:
-        #     self.task.jython_task_manager.get_task_result(task)
-        #=======================================================================
-
+        
     def test_rebalance_in_after_ops(self):
         """
         Rebalances nodes into cluster while doing docs ops:create/delete/update
