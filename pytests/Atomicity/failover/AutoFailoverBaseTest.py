@@ -83,7 +83,7 @@ class AutoFailoverBaseTest(BaseTestCase):
         task = self.task.async_load_gen_docs_atomicity(
                         self.cluster,self.bucket_util.buckets, kv_gen, op_type,exp,
                         batch_size=batch_size,process_concurrency=100,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
-                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit)
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         return task
 
     def async_load_all_buckets_read(self, kv_gen, op_type, exp, batch_size=20):
