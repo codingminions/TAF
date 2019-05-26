@@ -3010,7 +3010,7 @@ class Atomicity(Task):
             len_keys = len(Atomicity.all_keys)
             if len(Atomicity.update_keys) == 0 and "rebalance" not in self.op_type:
                 #Atomicity.update_keys = random.sample(Atomicity.all_keys,random.randint(1,len_keys))
-                Atomicity.update_keys = random.sample(Atomicity.all_keys,4)
+                Atomicity.update_keys = random.sample(Atomicity.all_keys,random.randint(1,len_keys))
                 
 
             
@@ -3050,7 +3050,7 @@ class Atomicity(Task):
                     exception = Transaction().RunTransaction(self.transaction, self.bucket, [], Atomicity.update_keys, [], False, True, Atomicity.updatecount )
 
                 if op_type == "delete":
-                    Atomicity.delete_keys = random.sample(Atomicity.all_keys,4)
+                    Atomicity.delete_keys = random.sample(Atomicity.all_keys,random.randint(1,len_keys))
                     log.info("delete keys count is {}".format(len(Atomicity.delete_keys)))
                     exception = Transaction().RunTransaction(self.transaction, self.bucket, [], [], Atomicity.delete_keys, self.commit, True, Atomicity.updatecount)
 
