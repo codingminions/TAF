@@ -121,7 +121,7 @@ class basic_ops(BaseTestCase):
                                              retries=self.sdk_retries,update_count=self.update_count, transaction_timeout=self.transaction_timeout, 
                                              commit=self.transaction_commit,durability=self.durability_level)
         print "going to execute the task"
-        self.task.jython_task_manager.get_task_result(task)
+        self.task_manager.get_task_result(task)
         
         if self.op_type == "time_out": 
             self.sleep(200, "sleep for 90 seconds so that the staged docs will be cleared")
