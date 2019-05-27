@@ -1,4 +1,4 @@
-from Atomicity.AutoFailoverBaseTest import DiskAutoFailoverBasetest
+from Atomicity.failover.AutoFailoverBaseTest import DiskAutoFailoverBasetest
 from membase.api.exception import RebalanceFailedException, ServerUnavailableException
 
 
