@@ -67,7 +67,8 @@ class basic_ops(BaseTestCase):
     def test_basic_commit(self):
         ''' Test transaction commit, rollback, time ahead, time behind scenarios with replica, persist_to and replicate_to settings '''
         # Atomicity.basic_ops.basic_ops.test_basic_commit
-        
+        self.transaction_timeout = self.input.param("transaction_timeout", 100)
+        self.transaction_commit = self.input.param("transaction_commit", True)
         self.drift_ahead = self.input.param("drift_ahead", False)
         self.drift_behind = self.input.param("drift_behind", False)
         gen_create = self.get_doc_generator(0, self.num_items)
