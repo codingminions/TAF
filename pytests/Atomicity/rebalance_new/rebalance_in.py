@@ -636,7 +636,7 @@ class RebalanceInTests(RebalanceBaseTest):
             temp = self.bucket_util.make_default_views(
                 self.default_view, num_views, is_dev_ddoc,
                 different_map=reproducer)
-            temp_tasks = self.bucket_util.async_create_views(self.cluster.master, prefix + ddoc_name, temp, bucket)
+            temp_tasks = self.bucket_util.async_create_views(self.cluster.master, ddoc_name, temp, bucket)
             views += temp
             tasks += temp_tasks
 
