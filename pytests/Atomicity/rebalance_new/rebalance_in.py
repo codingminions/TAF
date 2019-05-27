@@ -459,6 +459,15 @@ class RebalanceInTests(RebalanceBaseTest):
         self.transaction_timeout = self.input.param("transaction_timeout", 100)
         self.transaction_commit = self.input.param("transaction_commit", True)
         
+        task = self.task.async_load_gen_docs_atomicity(
+                        self.cluster,self.bucket_util.buckets, self.gen_load, "create",0,
+                        batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
+                                            persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
+                
+        self.task.jython_task_manager.get_task_result(task)
+        self.sleep(60,"The loading of docs is complete")
+        
         servs_in = self.cluster.servers[self.nodes_init:self.nodes_init + self.nodes_in]
         rebalance = self.task.async_rebalance(self.cluster.servers[:1], servs_in, [])
         
@@ -516,6 +525,16 @@ class RebalanceInTests(RebalanceBaseTest):
         """
         self.transaction_timeout = self.input.param("transaction_timeout", 100)
         self.transaction_commit = self.input.param("transaction_commit", True)
+        
+        
+        task = self.task.async_load_gen_docs_atomicity(
+                        self.cluster,self.bucket_util.buckets, self.gen_load, "create",0,
+                        batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
+                                            persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
+                
+        self.task.jython_task_manager.get_task_result(task)
+        self.sleep(60,"The loading of docs is complete")
         
         num_of_items = self.num_items
         for i in range(1, self.num_servers, 2):
@@ -683,9 +702,7 @@ class RebalanceInTests(RebalanceBaseTest):
                 self.cluster.nodes_in_cluster = list(set(self.cluster.nodes_in_cluster) - set(servs_in))
                 self.sleep(self.wait_timeout)
             self.sleep(60)
-        #=======================================================================
-        # self.bucket_util.verify_unacked_bytes_all_buckets()
-        #=======================================================================
+        
 
     def incremental_rebalance_in_with_queries(self):
         """
@@ -702,7 +719,18 @@ class RebalanceInTests(RebalanceBaseTest):
         sum(curr_items) match the curr_items_total.
         Once all nodes have been rebalanced in the test is finished.
         """
-
+        self.transaction_timeout = self.input.param("transaction_timeout", 100)
+        self.transaction_commit = self.input.param("transaction_commit", True)
+        
+        task = self.task.async_load_gen_docs_atomicity(
+                        self.cluster,self.bucket_util.buckets, self.gen_load, "create",0,
+                        batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
+                                            persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
+                
+        self.task.jython_task_manager.get_task_result(task)
+        self.sleep(40,"The loading of docs is complete")
+        
         num_views = self.input.param("num_views", 5)
         is_dev_ddoc = self.input.param("is_dev_ddoc", False)
         views = self.bucket_util.make_default_views(self.default_view, num_views, is_dev_ddoc)
@@ -769,7 +797,18 @@ class RebalanceInTests(RebalanceBaseTest):
         to drain, and then verify that there has been no data loss,
         sum(curr_items) match the curr_items_total.
         """
-
+        self.transaction_timeout = self.input.param("transaction_timeout", 100)
+        self.transaction_commit = self.input.param("transaction_commit", True)
+        
+        task = self.task.async_load_gen_docs_atomicity(
+                        self.cluster,self.bucket_util.buckets, self.gen_load, "create",0,
+                        batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
+                                            persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
+                
+        self.task.jython_task_manager.get_task_result(task)
+        self.sleep(40,"The loading of docs is complete")
+        
         servs_in = self.cluster.servers[self.nodes_init:self.nodes_init + self.nodes_in]
         servs_init = self.cluster.servers[:self.nodes_init]
         warmup_node = servs_init[-1]
@@ -902,6 +941,16 @@ class RebalanceInTests(RebalanceBaseTest):
         """
         self.transaction_timeout = self.input.param("transaction_timeout", 100)
         self.transaction_commit = self.input.param("transaction_commit", True)
+       
+        task = self.task.async_load_gen_docs_atomicity(
+                        self.cluster,self.bucket_util.buckets, self.gen_load, "create",0,
+                        batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
+                                            persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
+                        transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
+                
+        self.task.jython_task_manager.get_task_result(task)
+        self.sleep(60,"The loading of docs is complete")
+        
         gen_delete = self.get_doc_generator(self.num_items / 2,
                                             self.num_items)
 
@@ -924,11 +973,7 @@ class RebalanceInTests(RebalanceBaseTest):
                                              batch_size=20,timeout_secs=self.sdk_timeout,process_concurrency=8,
                                              retries=self.sdk_retries, transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         
-        #=======================================================================
-        #     self.bucket_util.verify_cluster_stats(self.num_items)
-        # self.bucket_util.verify_unacked_bytes_all_buckets()
-        #=======================================================================
-
+        
     def incremental_rebalance_in_with_mutation_and_expiration(self):
         """
         Rebalances nodes into a cluster while doing mutations and expirations.
