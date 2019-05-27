@@ -111,7 +111,7 @@ class basic_ops(BaseTestCase):
 #         Transaction().nonTxnRemoves(client.collection)
   
         print "going to create a task"
-        task = self.task.async_load_gen_docs_atomicity(self.cluster, self.def_bucket,
+        task = self.task.async_load_gen_docs_atomicity(self.cluster, self.bucket_util.buckets,
                                              gen_create, self.op_type , exp=self.exp,
                                              batch_size=10,
                                              process_concurrency=8,
@@ -124,7 +124,7 @@ class basic_ops(BaseTestCase):
         
         if self.op_type == "time_out": 
             self.sleep(200, "sleep for 90 seconds so that the staged docs will be cleared")
-            task = self.task.async_load_gen_docs_atomicity(self.cluster, self.def_bucket,
+            task = self.task.async_load_gen_docs_atomicity(self.cluster, self.bucket_util.buckets,
                                              gen_create, "create" , exp=self.exp,
                                              batch_size=10,
                                              process_concurrency=8,
