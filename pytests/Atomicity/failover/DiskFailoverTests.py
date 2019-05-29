@@ -5,7 +5,7 @@ from membase.api.exception import RebalanceFailedException, ServerUnavailableExc
 class DiskAutofailoverTests(DiskAutoFailoverBasetest):
     def setUp(self):
         super(DiskAutofailoverTests, self).setUp()
-        self.run_time_create_load_gen = self.get_doc_generator(self.num_items, self.num_items * 3)
+        self.run_time_create_load_gen = self.get_doc_generator(self.num_items, self.num_items * 5)
 
     def tearDown(self):
         super(DiskAutofailoverTests, self).tearDown()
