@@ -3116,7 +3116,7 @@ class Atomicity(Task):
 
 
             log.info("Atomicity Load generation thread completed")
-            self.transaction.close()
+            # self.transaction.close()
             self.complete_task()
 
         def __translate_to_json_object(self, value, doc_type="json"):
