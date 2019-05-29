@@ -82,7 +82,7 @@ class AutoFailoverBaseTest(BaseTestCase):
         
         task = self.task.async_load_gen_docs_atomicity(
                         self.cluster,self.bucket_util.buckets, kv_gen, op_type,exp,
-                        batch_size=batch_size,process_concurrency=100,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
+                        batch_size=batch_size,process_concurrency=8,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
                         transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         return task
 
@@ -573,9 +573,8 @@ class DiskAutoFailoverBasetest(AutoFailoverBaseTest):
         if self.read_loadgen:
             self.bucket_size = 100
         self.bucket_util.create_default_bucket(ram_quota=self.bucket_size, replica=self.num_replicas)
-        print("Reached Here")
+        self.sleep(10)
         self.load_all_buckets(self.initial_load_gen, "create", 0)
-        print("Error Found")
         self.failover_actions['disk_failure'] = self.fail_disk_via_disk_failure
         self.failover_actions['disk_full'] = self.fail_disk_via_disk_full
         self.loadgen_tasks = []
