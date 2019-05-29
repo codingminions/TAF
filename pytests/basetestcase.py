@@ -74,7 +74,7 @@ class BaseTestCase(unittest.TestCase):
             self.key_size = self.input.param("key_size", 0)
             self.doc_size = self.input.param("doc_size", 10)
             self.doc_type = self.input.param("doc_type", "json")
-            self.num_items = self.input.param("num_items", 100000)
+            self.num_items = self.input.param("num_items", 10000)
             self.target_vbucket = self.input.param("target_vbucket", None)
             self.maxttl = self.input.param("maxttl", 0)
             self.transaction_timeout = self.input.param("transaction_timeout", 100)
