@@ -3016,7 +3016,6 @@ class Atomicity(Task):
             
             for op_type in self.op_type:
                 if op_type == "create":
-                    print(len(self.op_type))
                     if len(self.op_type) != 1:
                         commit = True
                     else:
@@ -3025,18 +3024,6 @@ class Atomicity(Task):
                         Atomicity.delete_keys =[]
                     for doc in docs:
                         exception = Transaction().RunTransaction(self.transaction, self.bucket, [doc], [], [], commit, True, Atomicity.updatecount )
-                    
-#                     threads = []
-#                     for doc in docs:
-#                         name = threading.Thread(target=self.__thread_to_transaction, args=(doc,))
-#                         threads.append(name)
-#                     #start the threads
-#                     for thread in threads:
-#                         thread.start()
-#                     # wait till it completes
-#                     for thread in threads:
-#                         thread.join()
-#                     exception = Transaction().RunTransaction(self.transaction, self.bucket, docs, [], [], commit, True, Atomicity.updatecount)
                     if not commit:
                         Atomicity.all_keys = []
                     print("Done1")
@@ -3046,7 +3033,7 @@ class Atomicity(Task):
                     exception = Transaction().RunTransaction(self.transaction, self.bucket, [], Atomicity.update_keys, [], self.commit, True, Atomicity.updatecount )
                     if self.commit:
                         Atomicity.mutate = Atomicity.updatecount
-                print("Done2")
+                    print("Done2")
                        
 
                 if op_type == "update_Rollback":
