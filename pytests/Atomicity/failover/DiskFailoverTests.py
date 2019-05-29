@@ -21,6 +21,7 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
         self.sleep(10)
         tasks.append(self.async_load_all_buckets(self.delete_load_gen,
                                                  "delete", 0))
+        self.sleep(10)
         return tasks
 
     
