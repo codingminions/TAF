@@ -86,17 +86,6 @@ class AutoFailoverBaseTest(BaseTestCase):
                         transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level)
         return task
 
-    def async_load_all_buckets_read(self, kv_gen, op_type, exp, batch_size=20):
-        tasks = []
-        for bucket in self.bucket_util.buckets:
-            task = self.task.async_load_gen_docs(
-               self.cluster, bucket, kv_gen, op_type, exp,
-               persist_to=self.persist_to, replicate_to=self.replicate_to,
-               batch_size=batch_size, timeout_secs=self.sdk_timeout,
-               process_concurrency=8, retries=self.sdk_retries,
-               durability=self.durability_level)
-            tasks.append(task)
-        return tasks
     
     def load_all_buckets(self, kv_gen, op_type, exp, batch_size=20):
         task = self.async_load_all_buckets(kv_gen, op_type, exp, batch_size)

@@ -1,9 +1,7 @@
-import time
-
 from membase.api.exception import RebalanceFailedException, SetViewInfoNotFound
 from membase.api.rest_client import RestConnection
 from Atomicity.rebalance_new.rebalance_base import RebalanceBaseTest
-from couchbase_helper.documentgenerator import BlobGenerator, DocumentGenerator
+from couchbase_helper.documentgenerator import DocumentGenerator
 from remote.remote_util import RemoteMachineShellConnection
 from membase.helper.rebalance_helper import RebalanceHelper
 
@@ -49,7 +47,7 @@ class RebalanceOutTests(RebalanceBaseTest):
                         batch_size=20,process_concurrency=8,replicate_to=self.replicate_to,
                                             persist_to=self.persist_to,timeout_secs=self.sdk_timeout,retries=self.sdk_retries,
                         transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
-        print("Reached here")        
+                
         for task in tasks:
             self.task_manager.get_task_result(task)
         self.cluster.nodes_in_cluster = list(set(self.cluster.nodes_in_cluster) - set(servs_out))
@@ -109,30 +107,17 @@ class RebalanceOutTests(RebalanceBaseTest):
                 
             for task in tasks:
                 self.task.jython_task_manager.get_task_result(task)
-        #=======================================================================
-        # self.sleep(20,"Sleeping for 20 seconds")
-        #=======================================================================
+        
         servs_out = [self.cluster.servers[self.num_servers - i - 1] for i in range(self.nodes_out)]
-        #=======================================================================
-        # self.bucket_util.verify_stats_all_buckets(self.num_items, timeout=120)
-        # self.bucket_util._wait_for_stats_all_buckets()
-        #=======================================================================
+        
         self.sleep(60, "Starting prev_failover_stats")
         prev_failover_stats = self.bucket_util.get_failovers_logs(self.cluster.servers[:self.nodes_init], self.bucket_util.buckets)
-        print("Prev failover stats achieved")
         prev_vbucket_stats = self.bucket_util.get_vbucket_seqnos(self.cluster.servers[:self.nodes_init], self.bucket_util.buckets)
-        print("Prev vbuckets stats achieved")
         record_data_set = self.bucket_util.get_data_set_all(self.cluster.servers[:self.nodes_init], self.bucket_util.buckets)
-        print("record dataset stats achieved")
         self.bucket_util.compare_vbucketseq_failoverlogs(prev_vbucket_stats, prev_failover_stats)
-        print("add remove achieved")
         self.add_remove_servers_and_rebalance([], servs_out)
         
-        #=======================================================================
-        # self.bucket_util.verify_stats_all_buckets(self.num_items, timeout=120)
-        # self.bucket_util.verify_cluster_stats(self.num_items, check_ep_items_remaining=True)
-        #=======================================================================
-        self.sleep(120,"Starting new_failover_stats")
+        self.sleep(60,"Starting new_failover_stats")
         new_failover_stats = self.bucket_util.compare_failovers_logs(prev_failover_stats,
                                                          self.cluster.servers[:self.nodes_init - self.nodes_out], self.bucket_util.buckets)
         new_vbucket_stats = self.bucket_util.compare_vbucket_seqnos(prev_vbucket_stats,
@@ -142,9 +127,7 @@ class RebalanceOutTests(RebalanceBaseTest):
         
         self.bucket_util.data_analysis_all(record_data_set, self.cluster.servers[:self.num_servers- self.nodes_out], self.bucket_util.buckets)
         self.bucket_util.compare_vbucketseq_failoverlogs(new_vbucket_stats, new_failover_stats)
-        #=======================================================================
-        # self.bucket_util.verify_unacked_bytes_all_buckets()
-        #=======================================================================
+        
         self.sleep(40)
         nodes = self.cluster_util.get_nodes_in_cluster(self.cluster.master)
         self.bucket_util.vb_distribution_analysis(servers=nodes, buckets=self.bucket_util.buckets,num_replicas=self.num_replicas, std=1.0, total_vbuckets=self.vbuckets)
@@ -257,11 +240,8 @@ class RebalanceOutTests(RebalanceBaseTest):
                 self.task.jython_task_manager.get_task_result(task) 
                 
         ejectedNode = self.cluster_util.find_node_info(self.cluster.master, self.cluster.servers[self.nodes_init - 1])
-        #=======================================================================
-        # self.bucket_util.verify_stats_all_buckets(self.num_items, timeout=120)
-        # self.bucket_util._wait_for_stats_all_buckets()
-        #=======================================================================
-        self.sleep(180, "Sleep for 180 seconds")
+        
+        self.sleep(100, "Sleep for 100 seconds")
         
         prev_failover_stats = self.bucket_util.get_failovers_logs(self.cluster.servers[:self.nodes_init], self.bucket_util.buckets)
         prev_vbucket_stats = self.bucket_util.get_vbucket_seqnos(self.cluster.servers[:self.nodes_init], self.bucket_util.buckets)
@@ -279,15 +259,11 @@ class RebalanceOutTests(RebalanceBaseTest):
         self.rest.rebalance(otpNodes=[node.id for node in self.nodes], ejectedNodes=[chosen[0].id, ejectedNode.id])
         self.assertTrue(self.rest.monitorRebalance(stop_if_loop=True), msg="Rebalance failed")
         self.cluster.nodes_in_cluster = new_server_list
-        #=======================================================================
-        # self.bucket_util.verify_cluster_stats(self.num_items, check_ep_items_remaining=True)
-        #=======================================================================
-        self.sleep(100, "Starting data_analaysis_all")
+        
+        self.sleep(60, "Starting data_analaysis_all")
         self.bucket_util.data_analysis_all(record_data_set, new_server_list, self.bucket_util.buckets)
-        #=======================================================================
-        # self.bucket_util.verify_unacked_bytes_all_buckets()
-        #=======================================================================
-        self.sleep(100, "Vb_Distribution_Analysis starts")
+        
+        self.sleep(60, "Vb_Distribution_Analysis starts")
         nodes = self.cluster_util.get_nodes_in_cluster(self.cluster.master)
         self.bucket_util.vb_distribution_analysis(servers=nodes, buckets=self.bucket_util.buckets, num_replicas =self.num_replicas, std=1.0, total_vbuckets=self.vbuckets)
 
@@ -378,10 +354,7 @@ class RebalanceOutTests(RebalanceBaseTest):
 
         self.task.jython_task_manager.get_task_result(rebalance)
         self.cluster.nodes_in_cluster = list(set(self.cluster.nodes_in_cluster) - set(servs_out))
-        #=======================================================================
-        # self.bucket_util.verify_cluster_stats(self.num_items)
-        # self.bucket_util.verify_unacked_bytes_all_buckets()
-        #=======================================================================
+        
         self.sleep(60, "Wait for cluster after rebalance")
 
 
@@ -432,21 +405,13 @@ class RebalanceOutTests(RebalanceBaseTest):
                         transaction_timeout=self.transaction_timeout, commit=self.transaction_commit,durability=self.durability_level))
                     self.num_items = self.num_items - (self.num_items / 2)
                 
-            #===================================================================
-            # self.task.jython_task_manager.get_task_result(rebalance_task)   
-            # self.sleep(60)
-            #===================================================================
+            
             for task in tasks:
                 self.task.jython_task_manager.get_task_result(task)
                 
             self.cluster.nodes_in_cluster = list(set(self.cluster.nodes_in_cluster) - set(self.cluster.servers[i:i + 2]))
             self.sleep(120,"Sleep for 120 seconds")
-            #===================================================================
-            # self.bucket_util.verify_cluster_stats(self.num_items)
-            #===================================================================
-        #=======================================================================
-        # self.bucket_util.verify_unacked_bytes_all_buckets()
-        #=======================================================================
+            
 
     """Rebalances nodes out of a cluster during view queries.
 
@@ -530,10 +495,6 @@ class RebalanceOutTests(RebalanceBaseTest):
             self.bucket_util.perform_verify_queries(num_views, prefix, ddoc_name,self.default_view_name,query, bucket=bucket, wait_time=timeout,
                                         expected_rows=expected_rows)
         self.sleep(120, "Sleep for 120 seconds")
-        #=======================================================================
-        # self.bucket_util.verify_cluster_stats(self.num_items)
-        # self.bucket_util.verify_unacked_bytes_all_buckets()
-        #=======================================================================
 
     """Rebalances nodes out of a cluster during view queries incrementally.
 
@@ -645,10 +606,6 @@ class RebalanceOutTests(RebalanceBaseTest):
             self.task.jython_task_manager.get_task_result(rebalance)
             self.cluster.nodes_in_cluster = list(set(self.cluster.nodes_in_cluster) - set(servs_out))
         self.sleep(100, "Sleep for 100 seconds")
-        #=======================================================================
-        # self.bucket_util.verify_cluster_stats(self.num_items)
-        # self.bucket_util.verify_unacked_bytes_all_buckets()
-        #=======================================================================
 
 
     """Rebalances nodes out of a cluster while doing mutations and deletions.

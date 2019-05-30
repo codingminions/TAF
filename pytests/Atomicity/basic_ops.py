@@ -1,34 +1,14 @@
 import time
-
-
 from basetestcase import BaseTestCase
 from couchbase_helper.tuq_generators import JsonGenerator
-
-from membase.api.rest_client import RestConnection
-# from memcached.helper.data_helper import VBucketAwareMemcached
-from sdk_client3 import SDKClient as VBucketAwareMemcached
 from remote.remote_util import RemoteMachineShellConnection
-from couchbase_helper.documentgenerator import BlobGenerator, DocumentGenerator
-import random
+from couchbase_helper.documentgenerator import DocumentGenerator
 from __builtin__ import True
-from java.util.concurrent import ExecutionException
 from BucketLib.bucket import Bucket
 
-
-
-
 """
-Capture basic get, set operations, also the meta operations.
-This is based on some 4.1.1 test which had separate
-bugs with incr and delete with meta and I didn't see an obvious home for them.
-
-This is small now but we will reactively add things
-
-These may be parameterized by:
-   - full and value eviction
-   - DGM and non-DGM
+Basic test cases with commit,rollback scenarios
 """
-
 
 class basic_ops(BaseTestCase):
     def setUp(self):
@@ -41,7 +21,13 @@ class basic_ops(BaseTestCase):
         self.cluster.nodes_in_cluster.extend([self.cluster.master] + nodes_init)
         self.bucket_util.add_rbac_user()
         
+        self.transaction_timeout = self.input.param("transaction_timeout", 100)
+        self.transaction_commit = self.input.param("transaction_commit", True)
         
+        if self.default_bucket:
+            self.bucket_util.create_default_bucket(replica=self.num_replicas,
+                                               compression_mode=self.compression_mode, ram_quota=100)
+        time.sleep(10)
 
         # Reset active_resident_threshold to avoid further data load as DGM
         self.active_resident_threshold = 0
@@ -67,24 +53,10 @@ class basic_ops(BaseTestCase):
     def test_basic_commit(self):
         ''' Test transaction commit, rollback, time ahead, time behind scenarios with replica, persist_to and replicate_to settings '''
         # Atomicity.basic_ops.basic_ops.test_basic_commit
-        
-        self.transaction_timeout = self.input.param("transaction_timeout", 100)
-        self.transaction_commit = self.input.param("transaction_commit", True)
         self.drift_ahead = self.input.param("drift_ahead", False)
         self.drift_behind = self.input.param("drift_behind", False)
         gen_create = self.get_doc_generator(0, self.num_items)
         self.op_type = self.input.param("op_type", 'create')
-        self.num_buckets = self.input.param("num_buckets", 0)
-        self.default_bucket = self.input.param("default_bucket", True)
-        self.standard_bucket = self.input.param("standard_bucket", 1)
-        self.exp = self.input.param("expiry", 0)
-        self.update_count = self.input.param("update_count", 1)
-#         print_ops_task = self.bucket_util.async_print_bucket_ops(def_bucket)
-
-        if self.default_bucket:
-            self.bucket_util.create_default_bucket(replica=self.num_replicas,
-                                               compression_mode=self.compression_mode, ram_quota=100)
-        time.sleep(10)
         
         if self.drift_ahead:
             shell = RemoteMachineShellConnection(self.servers[0])
@@ -107,14 +79,9 @@ class basic_ops(BaseTestCase):
         if self.standard_buckets > 1:
             self.bucket_util.create_standard_buckets(self.cluster.master, self.standard_buckets, bucket_size=100)
             
-        self.def_bucket= self.bucket_util.get_all_buckets()
-#         client = VBucketAwareMemcached(RestConnection(self.cluster.master), self.def_bucket)
-#         
-#         Transaction().nonTxnRemoves(client.collection)
-  
         print "going to create a task"
         task = self.task.async_load_gen_docs_atomicity(self.cluster, self.bucket_util.buckets,
-                                             gen_create, self.op_type , exp=self.exp,
+                                             gen_create, self.op_type , exp=0,
                                              batch_size=10,
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
@@ -125,9 +92,9 @@ class basic_ops(BaseTestCase):
         self.task.jython_task_manager.get_task_result(task)
         
         if self.op_type == "time_out": 
-            self.sleep(200, "sleep for 90 seconds so that the staged docs will be cleared")
+            self.sleep(90, "sleep for 90 seconds so that the staged docs will be cleared")
             task = self.task.async_load_gen_docs_atomicity(self.cluster, self.bucket_util.buckets,
-                                             gen_create, "create" , exp=self.exp,
+                                             gen_create, "create" , exp=0,
                                              batch_size=10,
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
@@ -135,51 +102,12 @@ class basic_ops(BaseTestCase):
                                              retries=self.sdk_retries,update_count=self.update_count, transaction_timeout=200, 
                                              commit=self.transaction_commit,durability=self.durability_level)
             self.task_manager.get_task_result(task)
-#             tasks = []
-#             for bucket in self.bucket_util.buckets:
-#                 task = self.task.async_load_gen_docs(
-#                     self.cluster, bucket, gen_create, "create" , exp=self.exp,
-#                     persist_to=self.persist_to, replicate_to=self.replicate_to,
-#                     batch_size=10, timeout_secs=self.sdk_timeout,
-#                     process_concurrency=8, retries=self.sdk_retries,
-#                     durability=self.durability_level)
-#                 tasks.append(task)
-#             for task in tasks:
-#                 self.task_manager.get_task_result(task)
-            
-    #         
-#             print "going to create a task"
-#             task = self.task.async_load_gen_docs_atomicity(self.cluster, self.def_bucket,
-#                                                  gen_create, "create" , exp=self.exp,
-#                                                  batch_size=10,
-#                                                  process_concurrency=8,
-#                                                  replicate_to=self.replicate_to,
-#                                                  persist_to=self.persist_to, timeout_secs=self.sdk_timeout,
-#                                                  retries=self.sdk_retries,update_count=self.update_count, transaction_timeout=self.transaction_timeout, 
-#                                                  commit=self.transaction_commit,durability=self.durability_level)
-#             print "going to execute the task"
-#             self.task.jython_task_manager.get_task_result(task)
-
-#         print_ops_task.end_task()
-
-
 
     def test_large_doc_size_commit(self):
-        # Atomicity.basic_ops.basic_ops.test_basic_commit
-        self.transaction_timeout = self.input.param("transaction_timeout", 100)
-        self.transaction_commit = self.input.param("transaction_commit", True)
-        self.exp = self.input.param("expiry", 0)
-        self.default_bucket = self.input.param("default_bucket", True)
-        if self.default_bucket:
-            self.bucket_util.create_default_bucket(replica=self.num_replicas,
-                                               compression_mode=self.compression_mode, ram_quota=100)
-        time.sleep(10)
-       
-        
         gen_create = self.generate_docs_bigdata(docs_per_day=self.num_items, document_size=self.doc_size)
         print "going to create a task"
         task = self.task.async_load_gen_docs_atomicity(self.cluster, self.bucket_util.buckets,
-                                             gen_create, "create" , exp=self.exp,
+                                             gen_create, "create" , exp=0,
                                              batch_size=10,
                                              process_concurrency=8,
                                              replicate_to=self.replicate_to,
@@ -188,9 +116,7 @@ class basic_ops(BaseTestCase):
                                              commit=self.transaction_commit,durability=self.durability_level)
         print "going to execute the task"
         self.task.jython_task_manager.get_task_result(task)
-        self.bucket_util._wait_for_stats_all_buckets()
-        if (self.transaction_commit == False):
-            self.num_items = 0
+        
 
         
 

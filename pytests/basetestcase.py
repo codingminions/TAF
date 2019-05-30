@@ -80,6 +80,14 @@ class BaseTestCase(unittest.TestCase):
             self.transaction_timeout = self.input.param("transaction_timeout", 100)
             self.transaction_commit = self.input.param("transaction_commit", True)
 
+            #transactions param
+            self.transaction_timeout = self.input.param("transaction_timeout", 100)
+            self.transaction_commit = self.input.param("transaction_commit", True)
+            self.update_count = self.input.param("update_count", 1)
+            self.sync = self.input.param("sync", True)
+            self.default_bucket = self.input.param("default_bucket", True)
+            self.num_buckets = self.input.param("num_buckets", 0)
+
             # Client specific params
             self.sdk_compression = self.input.param("sdk_compression", True)
             self.replicate_to = self.input.param("replicate_to", 0)

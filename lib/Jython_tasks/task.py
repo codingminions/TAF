@@ -31,7 +31,7 @@ from platform_utils.remote.remote_util import RemoteUtilHelper, RemoteMachineShe
 
 
 from reactor.util.function import Tuples
-import threading
+
 
 
 import com.couchbase.test.transactions.SimpleTransaction as Transaction
@@ -2808,7 +2808,7 @@ class Atomicity(Task):
     def __init__(self, cluster, task_manager, bucket, client, clients, generator, op_type, exp, flag=0,
                  persist_to=0, replicate_to=0, time_unit="seconds",
                  only_store_hash=True, batch_size=1, pause_secs=1, timeout_secs=5, compression=True,
-                 process_concurrency=4, print_ops_rate=True, retries=5,update_count=1, transaction_timeout=5, commit=True, durability=None):
+                 process_concurrency=4, print_ops_rate=True, retries=5,update_count=1, transaction_timeout=5, commit=True, durability=None, sync=True):
         super(Atomicity, self).__init__("AtomicityDocumentsLoadGenTask")
 
 #         Atomicity.num_items = generator.end - generator.start
@@ -2818,6 +2818,7 @@ class Atomicity(Task):
         self.commit = commit
         self.exp = exp
         self.flag = flag
+        Atomicity.sync =sync
         self.persit_to = persist_to
         self.replicate_to = replicate_to
         self.time_unit = time_unit
@@ -2901,11 +2902,7 @@ class Atomicity(Task):
         tasks = []
         gen_start = int(generator.start)
         gen_end = max(int(generator.end), 1)
-        #=======================================================================
-        # if load:
-        #     self.process_concurrency = 10
-        # else:
-        #=======================================================================
+        
         self.process_concurrency = 1
         gen_range = max(int((generator.end - generator.start)/self.process_concurrency), 1)
         for pos in range(gen_start, gen_end, gen_range):
@@ -3026,14 +3023,14 @@ class Atomicity(Task):
                         exception = Transaction().RunTransaction(self.transaction, self.bucket, [doc], [], [], commit, True, Atomicity.updatecount )
                     if not commit:
                         Atomicity.all_keys = []
-                    print("Done1")
+                    
 
                 if op_type == "update":
                     #for key in Atomicity.update_keys:
                     exception = Transaction().RunTransaction(self.transaction, self.bucket, [], Atomicity.update_keys, [], self.commit, True, Atomicity.updatecount )
                     if self.commit:
                         Atomicity.mutate = Atomicity.updatecount
-                    print("Done2")
+                    
                        
 
                 if op_type == "update_Rollback":
@@ -3043,7 +3040,7 @@ class Atomicity(Task):
                     Atomicity.delete_keys = random.sample(Atomicity.all_keys,random.randint(1,len_keys))
                     log.info("delete keys count is {}".format(len(Atomicity.delete_keys)))
                     exception = Transaction().RunTransaction(self.transaction, self.bucket, [], [], Atomicity.delete_keys, self.commit, True, Atomicity.updatecount)
-                    print("Done3")
+                    
 
                 if op_type == "general_update":
                     for self.client in Atomicity.clients:

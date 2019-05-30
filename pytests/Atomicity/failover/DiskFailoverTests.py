@@ -5,7 +5,7 @@ from membase.api.exception import RebalanceFailedException, ServerUnavailableExc
 class DiskAutofailoverTests(DiskAutoFailoverBasetest):
     def setUp(self):
         super(DiskAutofailoverTests, self).setUp()
-        self.run_time_create_load_gen = self.get_doc_generator(self.num_items, self.num_items * 10)
+        self.run_time_create_load_gen = self.get_doc_generator(self.num_items, self.num_items * 5)
 
     def tearDown(self):
         super(DiskAutofailoverTests, self).tearDown()
@@ -15,13 +15,10 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
         tasks = []
         tasks.append(self.async_load_all_buckets(self.run_time_create_load_gen,
                                                  "create", 0))
-        self.sleep(10, "Done with Create")
         tasks.append(self.async_load_all_buckets(self.update_load_gen,
                                                  "update", 0))
-        self.sleep(10,"Done with Update")
         tasks.append(self.async_load_all_buckets(self.delete_load_gen,
                                                  "delete", 0))
-        self.sleep(10, "Done with Delete")
         return tasks
 
     
@@ -42,7 +39,6 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
         self.loadgen_tasks = self._loadgen()
         self.failover_expected = True
         self.failover_actions[self.failover_action]()
-        # self.fail_disk_via_disk_failure()
         self.disable_disk_autofailover_and_validate()
         self.disable_autofailover_and_validate()
 
@@ -60,7 +56,6 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
         self.loadgen_tasks = self._loadgen()
         self.failover_expected = True
         self.failover_actions[self.failover_action]()
-        # self.fail_disk_via_disk_failure()
         self.disable_disk_autofailover_and_validate()
         self.disable_autofailover_and_validate()
 
