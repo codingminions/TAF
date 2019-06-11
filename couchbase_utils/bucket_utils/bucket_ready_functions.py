@@ -5,10 +5,11 @@ Created on Sep 26, 2017
 """
 
 import copy
+import logging
+
 import crc32
 import exceptions
 import json
-import logging
 import random
 import string
 import time
@@ -26,6 +27,7 @@ from Jython_tasks.task import ViewCreateTask, ViewDeleteTask, ViewQueryTask, \
 from SecurityLib.rbac import RbacUtil
 from TestInput import TestInputSingleton
 from bucket_utils.Bucket import Bucket
+from cb_tools.cbstats import Cbstats
 from couchbase_helper.data_analysis_helper import DataCollector, DataAnalyzer,\
                                                   DataAnalysisResultAnalyzer
 from couchbase_helper.document import View
@@ -73,7 +75,7 @@ class BucketUtils:
         self.data_collector = DataCollector()
         self.data_analyzer = DataAnalyzer()
         self.result_analyzer = DataAnalysisResultAnalyzer()
-        self.log = logging.getLogger()
+        self.log = logging.getLogger("test")
 
     # Supporting APIs
     def sleep(self, timeout=15, message=""):
@@ -89,12 +91,18 @@ class BucketUtils:
             raise(Exception(msg))
 
     # Fetch/Create/Delete buckets
-    def create_bucket(self, bucket):
+    def create_bucket(self, bucket, wait_for_warmup=True):
         if not isinstance(bucket, Bucket):
             raise Exception("Create bucket needs Bucket object as parameter")
+        self.log.info("Creating bucket: %s" % bucket.name)
         _task = BucketCreateTask(self.cluster.master, bucket)
         self.task_manager.add_new_task(_task)
         result = self.task_manager.get_task_result(_task)
+        if wait_for_warmup:
+            warmed_up = self._wait_warmup_completed(
+                self.cluster_util.get_kv_nodes(), bucket, wait_time=60)
+            if not warmed_up:
+                raise("Bucket %s not warmed up" % bucket.name)
         if result:
             self.buckets.append(bucket)
         else:
@@ -135,13 +143,13 @@ class BucketUtils:
 
     def wait_for_bucket_deletion(self, bucket, bucket_conn,
                                  timeout_in_seconds=120):
-        self.log.info('waiting for bucket deletion to complete....')
+        self.log.info("Waiting for bucket %s deletion to finish" % bucket.name)
         start = time.time()
         while (time.time() - start) <= timeout_in_seconds:
             if not self.bucket_exists(bucket):
                 return True
             else:
-                time.sleep(2)
+                self.sleep(2)
         return False
 
     def wait_for_bucket_creation(self, bucket, bucket_conn,
@@ -174,10 +182,10 @@ class BucketUtils:
                 self.log.error('15 secs sleep before get_all_buckets() call')
                 time.sleep(15)
                 buckets = self.get_all_buckets(serverInfo)
-            self.log.info('Deleting existing buckets {0} on {1}'
-                          .format([b.name for b in buckets], serverInfo.ip))
+            self.log.debug('Deleting existing buckets {0} on {1}'
+                           .format([b.name for b in buckets], serverInfo.ip))
             for bucket in buckets:
-                self.log.info("Remove bucket {0} ...".format(bucket.name))
+                self.log.debug("Remove bucket {0} ...".format(bucket.name))
                 try:
                     status = self.delete_bucket(serverInfo, bucket)
                 except Exception as e:
@@ -189,7 +197,7 @@ class BucketUtils:
 
     def create_default_bucket(self, bucket_type=Bucket.bucket_type.MEMBASE,
                               ram_quota=None, replica=1, maxTTL=0,
-                              compression_mode="off"):
+                              compression_mode="off", wait_for_warmup=True):
         node_info = RestConnection(self.cluster.master).get_nodes_self()
         if ram_quota:
             ramQuotaMB = ram_quota
@@ -205,7 +213,7 @@ class BucketUtils:
                                  Bucket.replicaNumber: replica,
                                  Bucket.compressionMode: compression_mode,
                                  Bucket.maxTTL: maxTTL})
-        self.create_bucket(default_bucket)
+        self.create_bucket(default_bucket, wait_for_warmup)
         if self.enable_time_sync:
             self._set_time_sync_on_buckets([default_bucket.name])
 
@@ -332,7 +340,7 @@ class BucketUtils:
         for i in range(num_buckets):
             name = 'standard_bucket' + str(i)
             bucket_priority = None
-            if bucket_priorities is not None:
+            if bucket_priorities!=[]:
                 tem_prioroty = bucket_priorities[i]
                 bucket_priority = self.get_bucket_priority(tem_prioroty)
 
@@ -356,7 +364,7 @@ class BucketUtils:
             task.result()
 
     def verify_stats_for_bucket(self, bucket, items, timeout=60):
-        self.log.info("Verifying stats for bucket {0}".format(bucket.name))
+        self.log.debug("Verifying stats for bucket {0}".format(bucket.name))
         stats_tasks = []
         servers = self.cluster.nodes_in_cluster
         if bucket.bucketType == Bucket.bucket_type.MEMCACHED:
@@ -383,52 +391,27 @@ class BucketUtils:
             shell_conn_list.append(remote_conn)
 
         # Create Tasks to verify total items/replica count in the bucket
-        stats_tasks.append(self.async_wait_for_stats(
+        stats_tasks.append(self.task.async_wait_for_stats(
             shell_conn_list, bucket, stat_cmd,
-            'vb_replica_curr_items', '==', items * available_replicas))
-        stats_tasks.append(self.async_wait_for_stats(
+            'vb_replica_curr_items', '==', items * available_replicas,
+            timeout=timeout))
+        self.sleep(5)
+        stats_tasks.append(self.task.async_wait_for_stats(
             shell_conn_list, bucket, stat_cmd,
-            'curr_items_tot', '==', items * (available_replicas + 1)))
+            'curr_items_tot', '==', items * (available_replicas + 1),
+            timeout=timeout))
         try:
             for task in stats_tasks:
                 self.task_manager.get_task_result(task)
         except Exception as e:
-            self.log.info("{0}".format(e))
+            self.log.error("{0}".format(e))
             for task in stats_tasks:
                 self.task_manager.stop_task(task)
             self.log.error("Unable to get expected stats from the "
                            "selected node")
 
-            # In case of exception, close all connections
-            for remote_conn in shell_conn_list:
-                remote_conn.disconnect()
-
-    def async_wait_for_stats(self, shell_conn_list, bucket, stat_cmd, stat,
-                             comparison, value):
-        """
-        Asynchronously wait for stats
-
-        Waits for stats to match the criteria passed by the stats variable.
-        See couchbase.stats_tool.StatsCommon.build_stat_check(...)
-        for a description of the stats structure and how it can be built.
-
-        Parameters:
-            shell_conn_list - Objects of type 'RemoteMachineShellConnection'.
-                              Uses this object to execute cbstats binary in
-                              the cluster nodes
-            bucket     - The name of the bucket (String)
-            stat_cmd   - The stats name to fetch using cbstats. (String)
-            stat       - The stat that we want to get the value from. (String)
-            comparison - How to compare the stat result to the value specified.
-            value      - The value to compare to.
-
-        Returns:
-            RebalanceTask - Task future that is a handle to the scheduled task
-        """
-        _task = StatsWaitTask(shell_conn_list, bucket, stat_cmd, stat,
-                              comparison, value)
-        self.task_manager.add_new_task(_task)
-        return _task
+        for remote_conn in shell_conn_list:
+            remote_conn.disconnect()
 
     def update_all_bucket_maxTTL(self, maxttl=0):
         for bucket in self.buckets:
@@ -523,8 +506,8 @@ class BucketUtils:
         for _, task_info in tasks_info.items():
             op_type = task_info["op_type"]
             ignored_keys = task_info["ignored"].keys()
-            retried_success_keys = task_info["retired"]["success"].keys()
-            retried_failed_keys = task_info["retired"]["fail"].keys()
+            retried_success_keys = task_info["retried"]["success"].keys()
+            retried_failed_keys = task_info["retried"]["fail"].keys()
             unwanted_success_keys = task_info["unwanted"]["success"].keys()
             unwanted_failed_keys = task_info["unwanted"]["fail"].keys()
 
@@ -548,7 +531,7 @@ class BucketUtils:
                                .format(op_type, len(retried_failed_keys),
                                        retried_failed_keys))
                 self.log.error("Exceptions for failure on retried docs: {0}"
-                               .format(task_info["retired"]["fail"]))
+                               .format(task_info["retried"]["fail"]))
 
             if len(unwanted_success_keys) > 0:
                 task_info["ops_failed"] = True
@@ -743,7 +726,7 @@ class BucketUtils:
     def _wait_for_stats_all_buckets(self, ep_queue_size=0,
                                     ep_queue_size_cond='==',
                                     check_ep_items_remaining=False,
-                                    timeout=360):
+                                    timeout=60):
         """
         Waits for queues to drain on all servers and buckets in a cluster.
 
@@ -766,17 +749,20 @@ class BucketUtils:
                     continue
                 tasks.append(self.task.async_wait_for_stats(
                     [shell_conn], bucket, stat_cmd,
-                    'ep_queue_size', ep_queue_size_cond, ep_queue_size))
+                    'ep_queue_size', ep_queue_size_cond, ep_queue_size,
+                    timeout=timeout))
                 if check_ep_items_remaining:
                     stat_cmd = 'dcp'
                     ep_items_remaining = 'ep_{0}_items_remaining' \
                                          .format(stat_cmd)
                     tasks.append(self.task.async_wait_for_stats(
                         [shell_conn], bucket, stat_cmd,
-                        ep_items_remaining, "==", 0))
-            shell_conn.disconnect()
+                        ep_items_remaining, "==", 0,
+                        timeout=timeout))
         for task in tasks:
             self.task.jython_task_manager.get_task_result(task)
+            for shell in task.shellConnList:
+                shell.disconnect()
 
     def verify_unacked_bytes_all_buckets(self, filter_list=[], sleep_time=5):
         """
@@ -2027,17 +2013,36 @@ class BucketUtils:
             return True
         return False
 
-    def _wait_warmup_completed(self, servers, bucket_name, wait_time=300):
+    def _wait_warmup_completed(self, servers, bucket, wait_time=300):
+        # Return True, if bucket_type is not equal to MEMBASE
+        if bucket.bucketType != Bucket.bucket_type.MEMBASE:
+            return True
+
+        self.log.info("Waiting for bucket %s to complete warmup" % bucket.name)
         warmed_up = False
+        self.sleep(10)
+        start = time.time()
         for server in servers:
-            mc = None
-            start = time.time()
+            # Cbstats implementation to wait for bucket warmup
+            warmed_up = False
+            shell = RemoteMachineShellConnection(server)
+            cbstat_obj = Cbstats(shell)
+            while time.time() - start < wait_time:
+                result = cbstat_obj.all_stats(bucket.name, "ep_warmup_thread")
+                if result is not None and result == "complete":
+                    warmed_up = True
+                    break
+                self.sleep(2, "Warmup not complete for %s on %s"
+                           % (bucket.name, server.ip))
+            shell.disconnect()
+
+            """
             # Try to get the stats for 5 minutes, else hit out.
             while time.time() - start < wait_time:
-                # Get the wamrup time for each server
+                # Get the warm-up time for each server
                 try:
                     mc = MemcachedClientHelper.direct_client(server,
-                                                             bucket_name)
+                                                             bucket)
                     stats = mc.stats()
                     if stats is not None and 'ep_warmup_thread' in stats \
                             and stats['ep_warmup_thread'] == 'complete':
@@ -2070,6 +2075,7 @@ class BucketUtils:
                     self.fail("Value of ep_warmup thread does not exist, exiting from this server")
                 time.sleep(5)
             mc.close()
+            """
         return warmed_up
 
     def add_rbac_user(self, testuser=None, rolelist=None, node=None):
